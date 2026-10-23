@@ -54,9 +54,36 @@ function filterBoxMasters(form,preferred){
  if(!allowedInBox(box,current))select.value=BOX_MASTERS[box][0];else select.value=current;
 }
 function boxItems(box,day){return boxAllocations.filter(a=>a.box_no===box&&boxDayIn(day,a)).map(a=>({a,e:boxJob(a)})).filter(x=>x.e&&x.e.status!=='cancelled'&&(!state.search||[x.e.car,x.e.client,x.e.work,x.e.note].some(t=>String(t||'').toLowerCase().includes(state.search.toLowerCase()))));}
-function boxCellHTML(box,day){const items=boxItems(box,day);return `<div class="day-cell ${day===today?'today':''}">${items.map(({e})=>jobHTML(e,day)).join('')||'<div class="empty">Свободно</div>'}${items.length>1?'<div class="box-warn">⚠ Пересечение автомобилей</div>':''}${state.role==='owner'?`<button class="btn" style="padding:4px 8px" onclick="openBoxEditor(${box},'${day}')">+ Авто</button>`:''}</div>`}
-function openBoxEditor(box,day){openEditor(null,day,box===2?'danya':'anna');const f=document.getElementById('eventForm');if(f){f.elements.box_no.value=String(box);filterBoxMasters(f)}}
-function renderBoxCalendar(){const root=document.getElementById('calendar');if(!root)return;const first=state.view==='week'?startWeek(state.date):state.date;let days;if(state.view==='month'){const d=dateFrom(state.date),begin=new Date(d.getFullYear(),d.getMonth(),1);days=Array.from({length:new Date(d.getFullYear(),d.getMonth()+1,0).getDate()},(_,i)=>localDate(new Date(d.getFullYear(),d.getMonth(),i+1)))}else days=Array.from({length:state.view==='week'?7:1},(_,i)=>plusDays(first,i));const n=days.length;root.innerHTML=`<div class="calendar"><div class="grid-head" style="grid-template-columns:130px repeat(${n},minmax(${n>7?105:145}px,1fr));min-width:${130+n*(n>7?105:145)}px"><div>Бокс</div>${days.map(d=>`<div>${esc(fmtDate(d))}</div>`).join('')}</div>${[1,2].map(box=>`<div class="master-row" style="grid-template-columns:130px repeat(${n},minmax(${n>7?105:145}px,1fr));min-width:${130+n*(n>7?105:145)}px"><div class="master-title"><strong>Бокс ${box}</strong><span class="small">${BOX_MASTERS[box].map(getMaster).join(', ')}</span></div>${days.map(d=>boxCellHTML(box,d)).join('')}</div>`).join('')}</div>`}
+// Main calendar: one row for Box 1, separate Dania/Vitya rows for Box 2.
+// Records remain tied to their existing appointment and box allocation.
+function boxCellHTML(box,day,master=null){
+ const items=boxItems(box,day).filter(({e})=>!master||e.master_id===master);
+ const add=state.role==='owner'?`<button class="btn" style="padding:4px 8px" onclick="openBoxEditor(${box},'${day}','${master||''}')">+ Авто</button>`:'';
+ return `<div class="day-cell ${day===today?'today':''}">${items.map(({e})=>jobHTML(e,day)).join('')||'<div class="empty">Свободно</div>'}${items.length>1?'<div class="box-warn">⚠ Пересечение записей</div>':''}${add}</div>`;
+}
+function openBoxEditor(box,day,master=''){
+ const chosen=master||(box===2?'danya':'anna');
+ openEditor(null,day,chosen);
+ const f=document.getElementById('eventForm');
+ if(f){f.elements.box_no.value=String(box);filterBoxMasters(f,chosen)}
+}
+function renderBoxCalendar(){
+ const root=document.getElementById('calendar');if(!root)return;
+ const first=state.view==='week'?startWeek(state.date):state.date;
+ let days;
+ if(state.view==='month'){
+  const d=dateFrom(state.date);
+  days=Array.from({length:new Date(d.getFullYear(),d.getMonth()+1,0).getDate()},(_,i)=>localDate(new Date(d.getFullYear(),d.getMonth(),i+1)));
+ }else days=Array.from({length:state.view==='week'?7:1},(_,i)=>plusDays(first,i));
+ const n=days.length;
+ const style=`grid-template-columns:130px repeat(${n},minmax(${n>7?105:145}px,1fr));min-width:${130+n*(n>7?105:145)}px`;
+ const rows=[
+  {box:1,master:null,label:'Бокс 1',sub:'Анна, Витя'},
+  {box:2,master:'danya',label:'Бокс 2',sub:'Даня'},
+  {box:2,master:'vitya',label:'Бокс 2',sub:'Витя'}
+ ];
+ root.innerHTML=`<div class="calendar"><div class="grid-head" style="${style}"><div>Бокс / мастер</div>${days.map(d=>`<div>${esc(fmtDate(d))}</div>`).join('')}</div>${rows.map(r=>`<div class="master-row" style="${style}"><div class="master-title"><strong>${r.label}</strong><span class="small">${r.sub}</span></div>${days.map(d=>boxCellHTML(r.box,d,r.master)).join('')}</div>`).join('')}</div>`;
+}
 async function saveInitialBox(job,box,existingId){
  if(!configured)return;
  const start=job.start_at.slice(0,10),end=job.service_end;
