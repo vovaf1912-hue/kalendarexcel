@@ -58,10 +58,8 @@ function filterBoxMasters(form,preferred){
  if(root)root.innerHTML=allowed.map(id=>`<label style="display:inline-flex;flex-direction:row;align-items:center;gap:7px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--text)"><input class="master-check" type="checkbox" value="${id}" ${chosen.includes(id)?'checked':''} style="width:auto"> ${esc(getMaster(id))}</label>`).join('');
  form.elements.master_id.value=chosen[0];
 }
-
 function boxItems(box,day){return boxAllocations.filter(a=>a.box_no===box&&boxDayIn(day,a)).map(a=>({a,e:boxJob(a)})).filter(x=>x.e&&x.e.status!=='cancelled'&&(!state.search||[x.e.car,x.e.client,x.e.work,x.e.note].some(t=>String(t||'').toLowerCase().includes(state.search.toLowerCase()))));}
 // Main calendar: one row for Box 1, separate Dania/Vitya rows for Box 2.
-// Records remain tied to their existing appointment and box allocation.
 function boxCellHTML(box,day,master=null){
  const items=boxItems(box,day).filter(({e})=>!master||(e.master_ids||[e.master_id]).includes(master));
  const add=state.role==='owner'?`<button class="btn" style="padding:4px 8px" onclick="openBoxEditor(${box},'${day}','${master||''}')">+ Авто</button>`:'';
@@ -87,7 +85,7 @@ function renderBoxCalendar(){
   {box:1,master:null,label:'Бокс 1',sub:'Анна, Витя'},
   {box:2,master:'danya',label:'Бокс 2',sub:'Даня'},
   {box:2,master:'vitya',label:'Бокс 2',sub:'Витя'},
-   {box:3,master:null,label:'Осмотр',sub:'Все мастера'}
+  {box:3,master:null,label:'Осмотр',sub:'Все мастера'}
  ];
  root.innerHTML=`<div class="calendar"><div class="grid-head" style="${style}"><div>Бокс / мастер</div>${days.map(d=>`<div>${esc(fmtDate(d))}</div>`).join('')}</div>${rows.map(r=>`<div class="master-row" style="${style}"><div class="master-title"><strong>${r.label}</strong><span class="small">${r.sub}</span></div>${days.map(d=>boxCellHTML(r.box,d,r.master)).join('')}</div>`).join('')}</div>`;
 }
@@ -103,7 +101,6 @@ async function saveInitialBox(job,box,existingId){
  }
  await loadBoxes();
 }
-
 function openMoveForm(id){
  if(state.role!=='owner')return;
  const a=boxAllocations.find(x=>x.id===id),job=a&&boxJob(a);if(!a||!job)return;
