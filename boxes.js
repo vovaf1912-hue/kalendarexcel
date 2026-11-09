@@ -85,10 +85,8 @@ function renderBoxCalendar(){
  const style=`grid-template-columns:130px repeat(${n},minmax(${n>7?105:145}px,1fr));min-width:${130+n*(n>7?105:145)}px`;
  const rows=[
   {box:1,master:null,label:'Бокс 1',sub:'Анна, Витя'},
-  {box:2,master:'danya',label:'Бокс 2',sub:'Даня'},
-  {box:2,master:'vitya',label:'Бокс 2',sub:'Витя'},
-  {box:2,master:'anna',label:'Бокс 2',sub:'Анна'},
-   {box:3,master:null,label:'Осмотр',sub:'Все мастера'}
+  {box:2,master:null,label:'Бокс 2',sub:'Даня, Витя, Анна'},
+  {box:3,master:null,label:'Осмотр',sub:'Без обязательного мастера'}
  ];
  root.innerHTML=`<div class="calendar"><div class="grid-head" style="${style}"><div>Бокс / мастер</div>${days.map(d=>`<div>${esc(fmtDate(d))}</div>`).join('')}</div>${rows.map(r=>`<div class="master-row" style="${style}"><div class="master-title"><strong>${r.label}</strong><span class="small">${r.sub}</span></div>${days.map(d=>boxCellHTML(r.box,d,r.master)).join('')}</div>`).join('')}</div>`;
 }
