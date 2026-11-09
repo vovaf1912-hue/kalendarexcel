@@ -82,13 +82,14 @@ function renderBoxCalendar(){
   days=Array.from({length:new Date(d.getFullYear(),d.getMonth()+1,0).getDate()},(_,i)=>localDate(new Date(d.getFullYear(),d.getMonth(),i+1)));
  }else days=Array.from({length:state.view==='week'?7:1},(_,i)=>plusDays(first,i));
  const n=days.length;
- const style=`grid-template-columns:130px repeat(${n},minmax(${n>7?105:145}px,1fr));min-width:${130+n*(n>7?105:145)}px`;
+ const columnWidth=n>7?190:220;
+ const style=`grid-template-columns:145px repeat(${n},minmax(${columnWidth}px,1fr));min-width:${145+n*columnWidth}px`;
  const rows=[
   {box:1,master:null,label:'Бокс 1',sub:'Анна, Витя'},
   {box:2,master:null,label:'Бокс 2',sub:'Даня, Витя, Анна'},
   {box:3,master:null,label:'Осмотр',sub:'Без обязательного мастера'}
  ];
- root.innerHTML=`<div class="calendar"><div class="grid-head" style="${style}"><div>Бокс / мастер</div>${days.map(d=>`<div>${esc(fmtDate(d))}</div>`).join('')}</div>${rows.map(r=>`<div class="master-row" style="${style}"><div class="master-title"><strong>${r.label}</strong><span class="small">${r.sub}</span></div>${days.map(d=>boxCellHTML(r.box,d,r.master)).join('')}</div>`).join('')}</div>`;
+ root.innerHTML=`<div class="calendar"><div class="grid-head" style="${style}"><div>Бокс</div>${days.map(d=>`<div>${esc(dateFrom(d).toLocaleDateString('ru-RU',{weekday:'short',day:'numeric',month:'long'}))}</div>`).join('')}</div>${rows.map(r=>`<div class="master-row" style="${style}"><div class="master-title"><strong>${r.label}</strong><span class="small">${r.sub}</span></div>${days.map(d=>boxCellHTML(r.box,d,r.master)).join('')}</div>`).join('')}</div>`;
 }
 async function saveInitialBox(job,box,existingId){
  if(!configured)return;
