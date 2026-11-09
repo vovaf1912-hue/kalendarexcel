@@ -17,9 +17,9 @@ function renderBoxes(){
  let start=startWeek(state.date),days=Array.from({length:7},(_,i)=>plusDays(start,i));
  const boxCell=(box,d)=>{
   const entries=boxAllocations.filter(a=>a.box_no===box&&boxDayIn(d,a)).filter(a=>boxJob(a));
-  return `<div class="box-cell">${entries.length?entries.map(a=>{const e=boxJob(a);return `<div class="box-job" style="border-left:3px solid ${/^#[0-9a-f]{6}$/i.test(e.color)?e.color:'#4b8cff'}" title="${esc(workLabel(e.work))}"><b>${esc(e.car)}</b><small>${esc(masterNames(e))}</small></div>`}).join(''):'<span class="small">Свободно</span>'}${entries.length>1?'<div class="box-warn">⚠ Пересечение</div>':''}</div>`;
+  return `<div class="box-cell">${entries.length?entries.map(a=>{const e=boxJob(a);return `<div class="box-job" style="border-left:3px solid ${/^#[0-9a-f]{6}$/i.test(e.color)?e.color:'#4b8cff'}" title="${esc(workLabel(e.work))}"><b>${esc(e.car)}</b><small>${box===3?'Осмотр без мастера':esc(masterNames(e))}</small></div>`}).join(''):'<span class="small">Свободно</span>'}${entries.length>1?'<div class="box-warn">⚠ Пересечение</div>':''}</div>`;
  };
- root.innerHTML=`<div class="box-head"><div><h2>Боксы</h2><p class="small">Занятость по дням · перемещения не меняют график мастеров</p></div>${state.role==='owner'?'<button class="btn primary" onclick="openBoxForm()">+ Разместить / переместить</button>':''}</div>${boxError?`<div class="alert">${esc(boxError)}. Выполните boxes.sql в Supabase.</div>`:''}<div class="box-scroll"><div class="box-grid"><div class="box-label">Бокс</div>${days.map(d=>`<div class="box-date">${esc(fmtDate(d))}</div>`).join('')}${[1,2,3].map(b=>`<div class="box-label"><b>${b===3?'Осмотр':'Бокс '+b}</b></div>${days.map(d=>boxCell(b,d)).join('')}`).join('')}</div></div><div class="box-history"><h3>Размещения автомобилей</h3>${boxAllocations.filter(a=>boxJob(a)).slice().sort((a,b)=>b.start_date.localeCompare(a.start_date)).slice(0,40).map(a=>`<div class="box-history-row"><span><b>${esc(boxJob(a).car)}</b> · ${a.box_no===3?'Осмотр':'Бокс '+a.box_no}<small>${esc(a.start_date)} — ${esc(a.end_date)} · ${esc(masterNames(boxJob(a)))}</small></span>${state.role==='owner'?`<div class="actions"><button class="btn" onclick="openMoveForm('${a.id}')">Переместить</button><button class="btn" onclick="openBoxForm('${a.id}')">Изменить</button></div>`:''}</div>`).join('')||'<div class="small">Пока нет размещений. Нажмите «Разместить / переместить».</div>'}</div>`;
+ root.innerHTML=`<div class="box-head"><div><h2>Боксы</h2><p class="small">Занятость по дням · перемещения не меняют график мастеров</p></div>${state.role==='owner'?'<button class="btn primary" onclick="openBoxForm()">+ Разместить / переместить</button>':''}</div>${boxError?`<div class="alert">${esc(boxError)}. Выполните boxes.sql в Supabase.</div>`:''}<div class="box-scroll"><div class="box-grid"><div class="box-label">Бокс</div>${days.map(d=>`<div class="box-date">${esc(fmtDate(d))}</div>`).join('')}${[1,2,3].map(b=>`<div class="box-label"><b>${b===3?'Осмотр':'Бокс '+b}</b></div>${days.map(d=>boxCell(b,d)).join('')}`).join('')}</div></div><div class="box-history"><h3>Размещения автомобилей</h3>${boxAllocations.filter(a=>boxJob(a)).slice().sort((a,b)=>b.start_date.localeCompare(a.start_date)).slice(0,40).map(a=>`<div class="box-history-row"><span><b>${esc(boxJob(a).car)}</b> · ${a.box_no===3?'Осмотр':'Бокс '+a.box_no}<small>${esc(a.start_date)} — ${esc(a.end_date)} · ${a.box_no===3?'Осмотр без мастера':esc(masterNames(boxJob(a)))}</small></span>${state.role==='owner'?`<div class="actions"><button class="btn" onclick="openMoveForm('${a.id}')">Переместить</button><button class="btn" onclick="openBoxForm('${a.id}')">Изменить</button></div>`:''}</div>`).join('')||'<div class="small">Пока нет размещений. Нажмите «Разместить / переместить».</div>'}</div>`;
 }
 function openBoxForm(id=''){
  if(state.role!=='owner')return toast('Только владелец может менять боксы');
@@ -34,7 +34,7 @@ async function saveBox(ev,id){
  const job=state.events.find(e=>e.id===p.appointment_id);if(!job){err.textContent='Автомобиль не найден';return}
  if(p.start_date<job.start_at.slice(0,10)||p.end_date>job.service_end){err.textContent='Период бокса должен быть внутри срока нахождения автомобиля в сервисе';return}
  const overlaps=boxAllocations.filter(a=>a.id!==id&&a.box_no===p.box_no&&a.start_date<=p.end_date&&p.start_date<=a.end_date);
- if(overlaps.length&&!confirm(`В боксе ${p.box_no} уже есть ${overlaps.length} размещений на эти даты. Сохранить с пересечением?`))return;
+ if(p.box_no!==3&&overlaps.length&&!confirm(`В боксе ${p.box_no} уже есть ${overlaps.length} размещений на эти даты. Сохранить с пересечением?`))return;
  const other=boxAllocations.filter(a=>a.id!==id&&a.appointment_id===p.appointment_id&&a.start_date<=p.end_date&&p.start_date<=a.end_date);
  if(other.length&&!confirm('Этот автомобиль уже размещён в боксе на часть выбранных дат. Сохранить?'))return;
  const btn=ev.target.querySelector('[type=submit]');btn.disabled=true;
@@ -52,18 +52,20 @@ function filterBoxMasters(form,preferred){
  const box=Number(form.elements.box_no.value);
  const allowed=BOX_MASTERS[box]||[];
  const previous=Array.isArray(preferred)?preferred:Array.from(form.querySelectorAll('.master-check:checked')).map(x=>x.value);
- const chosen=previous.filter(m=>allowed.includes(m));
- if(!chosen.length)chosen.push(allowed[0]);
+ const chosen=box===3?[]:previous.filter(m=>allowed.includes(m));
+ if(box!==3&&!chosen.length)chosen.push(allowed[0]);
  const root=form.querySelector('#masterChecks');
- if(root)root.innerHTML=allowed.map(id=>`<label style="display:inline-flex;flex-direction:row;align-items:center;gap:7px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--text)"><input class="master-check" type="checkbox" value="${id}" ${chosen.includes(id)?'checked':''} style="width:auto"> ${esc(getMaster(id))}</label>`).join('');
- form.elements.master_id.value=chosen[0];
+ if(root)root.innerHTML=box===3?'<span class="small">Для осмотра мастер не требуется</span>':allowed.map(id=>`<label style="display:inline-flex;flex-direction:row;align-items:center;gap:7px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;color:var(--text)"><input class="master-check" type="checkbox" value="${id}" ${chosen.includes(id)?'checked':''} style="width:auto"> ${esc(getMaster(id))}</label>`).join('');
+ form.elements.master_id.value=chosen[0]||'anna';
 }
-function boxItems(box,day){return boxAllocations.filter(a=>a.box_no===box&&boxDayIn(day,a)).map(a=>({a,e:boxJob(a)})).filter(x=>x.e&&x.e.status!=='cancelled'&&(!state.search||[x.e.car,x.e.client,x.e.work,x.e.note].some(t=>String(t||'').toLowerCase().includes(state.search.toLowerCase()))));}
+
+function boxItems(box,day){return boxAllocations.filter(a=>a.box_no===box&&boxDayIn(day,a)).map(a=>({a,e:boxJob(a)})).filter(x=>x.e&&x.e.status!=='cancelled'&&matchesSearch(x.e,state.search));}
 // Main calendar: one row for Box 1, separate Dania/Vitya rows for Box 2.
+// Records remain tied to their existing appointment and box allocation.
 function boxCellHTML(box,day,master=null){
  const items=boxItems(box,day).filter(({e})=>!master||(e.master_ids||[e.master_id]).includes(master));
  const add=state.role==='owner'?`<button class="btn" style="padding:4px 8px" onclick="openBoxEditor(${box},'${day}','${master||''}')">+ Авто</button>`:'';
- return `<div class="day-cell ${day===today?'today':''}">${items.map(({e})=>jobHTML(e,day)).join('')||'<div class="empty">Свободно</div>'}${items.length>1?'<div class="box-warn">⚠ Пересечение записей</div>':''}${add}</div>`;
+ return `<div class="day-cell ${day===today?'today':''}">${items.map(({e})=>jobHTML(e,day)).join('')||'<div class="empty">Свободно</div>'}${items.length>1&&box!==3?'<div class="box-warn">⚠ Пересечение записей</div>':''}${add}</div>`;
 }
 function openBoxEditor(box,day,master=''){
  const chosen=master||(box===2?'danya':'anna');
@@ -85,7 +87,8 @@ function renderBoxCalendar(){
   {box:1,master:null,label:'Бокс 1',sub:'Анна, Витя'},
   {box:2,master:'danya',label:'Бокс 2',sub:'Даня'},
   {box:2,master:'vitya',label:'Бокс 2',sub:'Витя'},
-  {box:3,master:null,label:'Осмотр',sub:'Все мастера'}
+  {box:2,master:'anna',label:'Бокс 2',sub:'Анна'},
+   {box:3,master:null,label:'Осмотр',sub:'Все мастера'}
  ];
  root.innerHTML=`<div class="calendar"><div class="grid-head" style="${style}"><div>Бокс / мастер</div>${days.map(d=>`<div>${esc(fmtDate(d))}</div>`).join('')}</div>${rows.map(r=>`<div class="master-row" style="${style}"><div class="master-title"><strong>${r.label}</strong><span class="small">${r.sub}</span></div>${days.map(d=>boxCellHTML(r.box,d,r.master)).join('')}</div>`).join('')}</div>`;
 }
@@ -101,6 +104,7 @@ async function saveInitialBox(job,box,existingId){
  }
  await loadBoxes();
 }
+
 function openMoveForm(id){
  if(state.role!=='owner')return;
  const a=boxAllocations.find(x=>x.id===id),job=a&&boxJob(a);if(!a||!job)return;
