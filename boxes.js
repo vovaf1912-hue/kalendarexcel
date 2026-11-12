@@ -63,7 +63,7 @@ function boxItems(box,day){return boxAllocations.filter(a=>a.box_no===box&&boxDa
 // Main calendar: one row for Box 1, separate Dania/Vitya rows for Box 2.
 // Records remain tied to their existing appointment and box allocation.
 function boxCellHTML(box,day,master=null){
- const items=boxItems(box,day).filter(({e})=>!master||(e.master_ids||[e.master_id]).includes(master));
+ const items=boxItems(box,day).filter(({e})=>{if(box!==2||!master)return true;const masters=Array.isArray(e.master_ids)&&e.master_ids.length?e.master_ids:[e.master_id];const lane=masters.includes('danya')?'danya':masters.includes('vitya')?'vitya':'danya';return lane===master;});
  const add=state.role==='owner'?`<button class="btn" style="padding:4px 8px" onclick="openBoxEditor(${box},'${day}','${master||''}')">+ Авто</button>`:'';
  return `<div class="day-cell ${day===today?'today':''}">${items.map(({e})=>jobHTML(e,day)).join('')||'<div class="empty">Свободно</div>'}${items.length>1&&box!==3?'<div class="box-warn">⚠ Пересечение записей</div>':''}${add}</div>`;
 }
@@ -86,7 +86,8 @@ function renderBoxCalendar(){
  const style=`grid-template-columns:145px repeat(${n},minmax(${columnWidth}px,1fr));min-width:${145+n*columnWidth}px`;
  const rows=[
   {box:1,master:null,label:'Бокс 1',sub:'Анна, Витя'},
-  {box:2,master:null,label:'Бокс 2',sub:'Даня, Витя, Анна'},
+  {box:2,master:'danya',label:'Бокс 2',sub:'Даня'},
+  {box:2,master:'vitya',label:'Бокс 2',sub:'Витя'},
   {box:3,master:null,label:'Осмотр',sub:'Без обязательного мастера'}
  ];
  const allocatedIds=new Set(boxAllocations.map(a=>a.appointment_id));
